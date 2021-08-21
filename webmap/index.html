@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <meta charset='utf-8'>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.6.1/css/ol.css" type="text/css">
     <style>
 .map {
@@ -19,54 +20,67 @@
 }
     </style>
     <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.6.1/build/ol.js"></script>
-    <title>OpenLayers example</title>
+    <title>Homenessness in Western Australia</title>
   </head>
   <body>
     <span id="status"></span>
     <div id="map" class="map"></div>
     <script type="text/javascript">
-
+      // Create a custom style function to style based on feature data
       const styleCache = {};
-      const styleFunction = function (feature) {
+      const styleFunction = function (feature, highlight=false) {
+              // Find the number of households at risk of homelessness in this area
               const atrisk = feature.get("All households 'at risk' of homelessness");
+
               var area_color = '';
-              let style = styleCache[area_color];
+
+              // Based on the number of households at risk of homelessness, select a fill color
+              if(atrisk <= 108)
+                area_color = '#2b83ba80';
+              else if(atrisk <= 198)
+                area_color = '#abdda480';
+              else if(atrisk <= 302)
+                area_color = '#ffffbf80';
+              else if(atrisk <= 344)
+                area_color = '#fdae6180';
+              else
+                area_color = '#d7191c80';
+
+              // Check out cache to see if we've already generated a style for this area color
+              let style = styleCache[area_color + '_' + (highlight ? '1' : '0' )];
               if (!style) {
-
-                      if(atrisk <= 108)
-                        area_color = '#2b83ba80';
-                      else if(atrisk <= 198)
-                        area_color = '#abdda480';
-                      else if(atrisk <= 302)
-                        area_color = '#ffffbf80';
-                      else if(atrisk <= 344)
-                        area_color = '#fdae6180';
-                      else
-                        area_color = '#d7191c80';
-
+                      // Generate a style using this color
                       style = new ol.style.Style({
                               stroke: new ol.style.Stroke({
                                       color: 'black',
-                                      width: 0.5,
+                                      // Set width based on whether or not this feature is highlighted currently
+                                      width: (highlight ? 5 : 0.5),
                                     }),
                               fill: new ol.style.Fill({
                                       color: area_color,
                                     }),
                             });
-                      styleCache[area_color] = style;
+                      // Save this style in a cache so we don't have to keep generating it
+                      styleCache[area_color + '_' + (highlight ? '1' : '0' )] = style;
                     }
               return style;
             };
+      // Create decorators for styleFunction to call it with an extra argument
+      // declaring whether or not a feature is highlighted
+      const regularStyle = function (feature) { return styleFunction(feature, false); }
+      const highlightStyle = function (feature) { return styleFunction(feature, true); }
 
+      // Load our GeoJSON file and create a layer from it
       var vectorLayer = new ol.layer.Vector({
               source: new ol.source.Vector({
                       format: new ol.format.GeoJSON(),
                       url: 'wa_homeless_summary.geojson'
                     }),
-              style: styleFunction,
+              style: regularStyle,
             });
 
-
+      // Create our map, including a standard OpenStreetMap base layer, and our
+      // GeoJSON layer
       var map = new ol.Map({
               target: 'map',
               layers: [
@@ -76,38 +90,43 @@
                       vectorLayer
                     ],
               view: new ol.View({
+                      // Centre the map view around Perth
                       center: ol.proj.fromLonLat([116.016,-32.324]),
                       zoom: 11
                     })
             });
 
+      // Find our 'status' element, whose text we'll change if a map object
+      // is selected.
       let selected = null;
       const status = document.getElementById('status');
 
+      // Listen for and respond to pointer movements
       map.on('pointermove', function (e) {
               if (selected !== null) {
                       selected.setStyle(undefined);
                       selected = null;
                     }
 
+              // If a map object is selected, change its style to reflect that
               map.forEachFeatureAtPixel(e.pixel, function (f) {
                       selected = f;
-                      //f.setStyle(highlightStyle);
-                      //console.log(selected);
+                      f.setStyle(highlightStyle);
                       return true;
                     });
 
-              if (selected) {
-                      var text = 'Area: ' + selected.get('sa3_name') + '<br>All households \'at risk\' of homelessness: ' + selected.get("All households 'at risk' of homelessness");
-                      console.log(text);
-                      status.innerHTML = text;
 
+              // Set the text of our 'status' element to show some data about
+              // the selected map object
+              if (selected) {
+                      var text = 'Area: ' + selected.get('sa3_name') +
+                        '<br>All households \'at risk\' of homelessness: ' +
+                        selected.get("All households 'at risk' of homelessness");
+                      status.innerHTML = text;
                     } else {
                             status.innerHTML = '&nbsp;';
                           }
             });
-
-
     </script>
   </body>
 </html>
