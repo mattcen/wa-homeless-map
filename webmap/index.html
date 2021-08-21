@@ -27,124 +27,124 @@
     <div id="popup" title=""></div>
     <div id="map" class="map"></div>
     <script type="text/javascript">
-      // Create a custom style function to style based on feature data
-      const styleCache = {};
-      const styleFunction = function (feature, highlight=false) {
-              // Find the number of households at risk of homelessness in this area
-              const atrisk = feature.get("All households 'at risk' of homelessness");
+// Create a custom style function to style based on feature data
+const styleCache = {};
+const styleFunction = function (feature, highlight=false) {
+  // Find the number of households at risk of homelessness in this area
+  const atrisk = feature.get("All households 'at risk' of homelessness");
 
-              var area_color = '';
+  var area_color = '';
 
-              // Based on the number of households at risk of homelessness, select a fill color
-              if(atrisk <= 108)
-                area_color = '#2b83ba80';
-              else if(atrisk <= 198)
-                area_color = '#abdda480';
-              else if(atrisk <= 302)
-                area_color = '#ffffbf80';
-              else if(atrisk <= 344)
-                area_color = '#fdae6180';
-              else
-                area_color = '#d7191c80';
+  // Based on the number of households at risk of homelessness, select a fill color
+  if(atrisk <= 108)
+    area_color = '#2b83ba80';
+  else if(atrisk <= 198)
+    area_color = '#abdda480';
+  else if(atrisk <= 302)
+    area_color = '#ffffbf80';
+  else if(atrisk <= 344)
+    area_color = '#fdae6180';
+  else
+    area_color = '#d7191c80';
 
-              // Check out cache to see if we've already generated a style for this area color
-              let style = styleCache[area_color + '_' + (highlight ? '1' : '0' )];
-              if (!style) {
-                      // Generate a style using this color
-                      style = new ol.style.Style({
-                              stroke: new ol.style.Stroke({
-                                      color: 'black',
-                                      // Set width based on whether or not this feature is highlighted currently
-                                      width: (highlight ? 5 : 0.5),
-                                    }),
-                              fill: new ol.style.Fill({
-                                      color: area_color,
-                                    }),
-                            });
-                      // Save this style in a cache so we don't have to keep generating it
-                      styleCache[area_color + '_' + (highlight ? '1' : '0' )] = style;
-                    }
-              return style;
-            };
-      // Create decorators for styleFunction to call it with an extra argument
-      // declaring whether or not a feature is highlighted
-      const regularStyle = function (feature) { return styleFunction(feature, false); }
-      const highlightStyle = function (feature) { return styleFunction(feature, true); }
+  // Check out cache to see if we've already generated a style for this area color
+  let style = styleCache[area_color + '_' + (highlight ? '1' : '0' )];
+  if (!style) {
+    // Generate a style using this color
+    style = new ol.style.Style({
+      stroke: new ol.style.Stroke({
+        color: 'black',
+        // Set width based on whether or not this feature is highlighted currently
+        width: (highlight ? 5 : 0.5),
+      }),
+      fill: new ol.style.Fill({
+        color: area_color,
+      }),
+    });
+    // Save this style in a cache so we don't have to keep generating it
+    styleCache[area_color + '_' + (highlight ? '1' : '0' )] = style;
+  }
+  return style;
+};
+// Create decorators for styleFunction to call it with an extra argument
+// declaring whether or not a feature is highlighted
+const regularStyle = function (feature) { return styleFunction(feature, false); }
+const highlightStyle = function (feature) { return styleFunction(feature, true); }
 
-      // Load our GeoJSON file and create a layer from it
-      var vectorLayer = new ol.layer.Vector({
-              source: new ol.source.Vector({
-                      format: new ol.format.GeoJSON(),
-                      url: 'wa_homeless_summary.geojson'
-                    }),
-              style: regularStyle,
-            });
+// Load our GeoJSON file and create a layer from it
+var vectorLayer = new ol.layer.Vector({
+  source: new ol.source.Vector({
+    format: new ol.format.GeoJSON(),
+    url: 'wa_homeless_summary.geojson'
+  }),
+  style: regularStyle,
+});
 
-      // Create our map, including a standard OpenStreetMap base layer, and our
-      // GeoJSON layer
-      var map = new ol.Map({
-              target: 'map',
-              layers: [
-                      new ol.layer.Tile({
-                              source: new ol.source.OSM()
-                            }),
-                      vectorLayer
-                    ],
-              view: new ol.View({
-                      // Centre the map view around Perth
-                      center: ol.proj.fromLonLat([116.016,-32.324]),
-                      zoom: 11
-                    })
-            });
+// Create our map, including a standard OpenStreetMap base layer, and our
+// GeoJSON layer
+var map = new ol.Map({
+  target: 'map',
+  layers: [
+    new ol.layer.Tile({
+      source: new ol.source.OSM()
+    }),
+    vectorLayer
+  ],
+  view: new ol.View({
+    // Centre the map view around Perth
+    center: ol.proj.fromLonLat([116.016,-32.324]),
+    zoom: 11
+  })
+});
 
 
-      // Popup showing the position the user clicked
-      const popup = new ol.Overlay({
-              element: document.getElementById('popup'),
-            });
-      map.addOverlay(popup);
+// Popup showing the position the user clicked
+const popup = new ol.Overlay({
+  element: document.getElementById('popup'),
+});
+map.addOverlay(popup);
 
-      // Find our 'status' element, whose text we'll change if a map object
-      // is selected.
-      let selected = null;
-      const status = document.getElementById('status');
+// Find our 'status' element, whose text we'll change if a map object
+// is selected.
+let selected = null;
+const status = document.getElementById('status');
 
-      // Listen for and respond to pointer clicks
-      // FIXME: 'click' below was initially 'pointermove', but this caused a
-      // bug where one couldn't click/drag the map or scroll to zoom while hovering
-      // over a map object.
-      map.on('click', function (e) {
-              const element = popup.getElement();
-              const coordinate = e.coordinate;
+// Listen for and respond to pointer clicks
+// FIXME: 'click' below was initially 'pointermove', but this caused a
+// bug where one couldn't click/drag the map or scroll to zoom while hovering
+// over a map object.
+map.on('click', function (e) {
+  const element = popup.getElement();
+  const coordinate = e.coordinate;
 
-              if (selected !== null) {
-                      selected.setStyle(undefined);
-                      selected = null;
-                    }
+  if (selected !== null) {
+    selected.setStyle(undefined);
+    selected = null;
+  }
 
-              // If a map object is selected, change its style to reflect that
-              map.forEachFeatureAtPixel(e.pixel, function (f) {
-                      selected = f;
-                      f.setStyle(highlightStyle);
-                      return true;
-                    });
+  // If a map object is selected, change its style to reflect that
+  map.forEachFeatureAtPixel(e.pixel, function (f) {
+    selected = f;
+    f.setStyle(highlightStyle);
+    return true;
+  });
 
-              // Set the text of our popup to show some data about the selected
-              // map object
-              if (selected) {
-                      $(element).popover('dispose');
-                      popup.setPosition(coordinate);
-                      $(element).popover({
-                              container: element,
-                              placement: 'top',
-                              animation: false,
-                              title: selected.get('sa3_name'),
-                              html: true,
-                              content: '<strong>Households \'at risk\'</strong>: ' + selected.get("All households 'at risk' of homelessness"),
-                            });
-                      $(element).popover('show');
-                    } else { $(element).popover('hide'); }
-            });
+  // Set the text of our popup to show some data about the selected
+  // map object
+  if (selected) {
+    $(element).popover('dispose');
+    popup.setPosition(coordinate);
+    $(element).popover({
+      container: element,
+      placement: 'top',
+      animation: false,
+      title: selected.get('sa3_name'),
+      html: true,
+      content: '<strong>Households \'at risk\'</strong>: ' + selected.get("All households 'at risk' of homelessness"),
+    });
+    $(element).popover('show');
+  } else { $(element).popover('hide'); }
+});
     </script>
   </body>
 </html>
