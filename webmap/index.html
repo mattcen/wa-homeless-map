@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.6.1/css/ol.css" type="text/css">
+    <style>
+.map {
+  /*height: 400px;
+  width: 100%;*/
+  position: fixed;
+  top: 50px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+#status {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+}
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.6.1/build/ol.js"></script>
+    <title>OpenLayers example</title>
+  </head>
+  <body>
+    <span id="status"></span>
+    <div id="map" class="map"></div>
+    <script type="text/javascript">
+
+      const styleCache = {};
+      const styleFunction = function (feature) {
+              const atrisk = feature.get("All households 'at risk' of homelessness");
+              var area_color = '';
+              let style = styleCache[area_color];
+              if (!style) {
+
+                      if(atrisk <= 108)
+                        area_color = '#2b83ba80';
+                      else if(atrisk <= 198)
+                        area_color = '#abdda480';
+                      else if(atrisk <= 302)
+                        area_color = '#ffffbf80';
+                      else if(atrisk <= 344)
+                        area_color = '#fdae6180';
+                      else
+                        area_color = '#d7191c80';
+
+                      style = new ol.style.Style({
+                              stroke: new ol.style.Stroke({
+                                      color: 'black',
+                                      width: 0.5,
+                                    }),
+                              fill: new ol.style.Fill({
+                                      color: area_color,
+                                    }),
+                            });
+                      styleCache[area_color] = style;
+                    }
+              return style;
+            };
+
+      var vectorLayer = new ol.layer.Vector({
+              source: new ol.source.Vector({
+                      format: new ol.format.GeoJSON(),
+                      url: 'wa_homeless_summary.geojson'
+                    }),
+              style: styleFunction,
+            });
+
+
+      var map = new ol.Map({
+              target: 'map',
+              layers: [
+                      new ol.layer.Tile({
+                              source: new ol.source.OSM()
+                            }),
+                      vectorLayer
+                    ],
+              view: new ol.View({
+                      center: ol.proj.fromLonLat([116.016,-32.324]),
+                      zoom: 11
+                    })
+            });
+
+      let selected = null;
+      const status = document.getElementById('status');
+
+      map.on('pointermove', function (e) {
+              if (selected !== null) {
+                      selected.setStyle(undefined);
+                      selected = null;
+                    }
+
+              map.forEachFeatureAtPixel(e.pixel, function (f) {
+                      selected = f;
+                      //f.setStyle(highlightStyle);
+                      //console.log(selected);
+                      return true;
+                    });
+
+              if (selected) {
+                      var text = 'Area: ' + selected.get('sa3_name') + '<br>All households \'at risk\' of homelessness: ' + selected.get("All households 'at risk' of homelessness");
+                      console.log(text);
+                      status.innerHTML = text;
+
+                    } else {
+                            status.innerHTML = '&nbsp;';
+                          }
+            });
+
+
+    </script>
+  </body>
+</html>
